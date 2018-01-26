@@ -1,2 +1,2 @@
 # ciris-kubernetes
-Kubernetes secrets support for Ciris.
+Kubernetes secrets support for [Ciris](https://cir.is).
