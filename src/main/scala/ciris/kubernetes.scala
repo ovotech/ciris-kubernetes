@@ -3,6 +3,7 @@ package ciris
 import java.lang.reflect.Type
 import java.util.{Base64, Date}
 
+import ciris.api.Id
 import com.google.gson._
 import io.kubernetes.client.apis.CoreV1Api
 import io.kubernetes.client.util.authenticators.GCPAuthenticator
@@ -52,10 +53,10 @@ object kubernetes {
     }
   }
 
-  private final class SecretKey(
-    val namespace: String,
-    val name: String,
-    val key: Option[String]
+  final case class SecretKey(
+    namespace: String,
+    name: String,
+    key: Option[String]
   ) {
     override def toString: String = key match {
       case Some(key) => s"namespace = $namespace, name = $name, key = $key"
@@ -75,7 +76,7 @@ object kubernetes {
     api.readNamespacedSecret(name, namespace, null, null, null).getData.asScala.toMap
   }
 
-  private def secretSource(client: ApiClient): ConfigSource[SecretKey] =
+  private def secretSource(client: ApiClient): ConfigSource[Id, SecretKey, String] =
     ConfigSource(secretKeyType) { secret =>
       val secretEntries =
         fetchSecretEntries(client, secret.name, secret.namespace) match {
@@ -85,7 +86,7 @@ object kubernetes {
 
       val secretValueBytes =
         secretEntries.right.flatMap { entries =>
-          def availableKeys = s"available keys are: ${entries.keys.mkString(", ")}"
+          def availableKeys = s"available keys are: ${entries.keys.toList.sorted.mkString(", ")}"
 
           secret.key match {
             case Some(key) => entries.get(key).toRight(ConfigError(s"${secretKeyType.name.capitalize} [$secret] exists but there is no entry with key [$key]; $availableKeys"))
@@ -108,30 +109,33 @@ object kubernetes {
   }
 
   final class SecretInNamespace private[kubernetes] (namespace: String, client: ApiClient) {
+    private val source: ConfigSource[Id, SecretKey, String] =
+      secretSource(client)
+
     def apply[Value](name: String)(
-      implicit reader: ConfigReader[Value]
-    ): ConfigValue[Value] = {
+      implicit decoder: ConfigDecoder[String, Value]
+    ): ConfigEntry[Id, SecretKey, String, Value] = {
       val secretKey =
-        new SecretKey(
+        SecretKey(
           namespace = namespace,
           name = name,
           key = None
         )
 
-      ConfigValue(secretKey)(secretSource(client), reader)
+      source.read(secretKey).decodeValue[Value]
     }
 
     def apply[Value](name: String, key: String)(
-      implicit reader: ConfigReader[Value]
-    ): ConfigValue[Value] = {
+      implicit decoder: ConfigDecoder[String, Value]
+    ): ConfigEntry[Id, SecretKey, String, Value] = {
       val secretKey =
-        new SecretKey(
+        SecretKey(
           namespace = namespace,
           name = name,
           key = Some(key)
         )
 
-      ConfigValue(secretKey)(secretSource(client), reader)
+      source.read(secretKey).decodeValue[Value]
     }
 
     override def toString: String =
