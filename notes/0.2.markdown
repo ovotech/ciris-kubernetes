@@ -1,0 +1,12 @@
+### Changes
+- Change to make `SecretKey` a case class and make it public. ([#1][#1])
+- Change to sort available keys by name in error messages. ([#1][#1])
+- Change to not create a new source for every read key. ([#1][#1])
+- Change to return `ConfigEntry` instead of `ConfigValue`. ([#1][#1])
+
+### Updates
+- Update to Ciris 0.7.0. ([#1][#1])
+
+[#1]: https://github.com/ovotech/ciris-kubernetes/pull/1
+
+Released on 2018-02-12.
