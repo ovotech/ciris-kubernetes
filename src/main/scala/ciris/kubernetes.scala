@@ -3,7 +3,8 @@ package ciris
 import java.lang.reflect.Type
 import java.util.{Base64, Date}
 
-import ciris.api.Id
+import ciris.api._
+import ciris.api.syntax._
 import com.google.gson._
 import io.kubernetes.client.apis.CoreV1Api
 import io.kubernetes.client.util.authenticators.GCPAuthenticator
@@ -106,6 +107,49 @@ object kubernetes {
     implicit client: ApiClient = Config.defaultClient()
   ): SecretInNamespace = {
     new SecretInNamespace(namespace, client)
+  }
+
+  def secretInNamespaceF[F[_]: Sync](
+    namespace: String,
+    client: F[ApiClient]
+  ): SecretInNamespaceF[F] = {
+    new SecretInNamespaceF[F](namespace, client)
+  }
+
+  final class SecretInNamespaceF[F[_]: Sync] private[kubernetes] (
+    namespace: String,
+    client: F[ApiClient]
+  ) {
+    private val source: ConfigSource[F, SecretKey, String] =
+      ConfigSource.applyF(secretKeyType) { key =>
+        client.flatMap(secretSource(_).suspendF[F].read(key).value)
+      }
+
+    def apply[Value](name: String)(
+      implicit decoder: ConfigDecoder[String, Value]
+    ): ConfigEntry[F, SecretKey, String, Value] = {
+      val secretKey =
+        SecretKey(
+          namespace = namespace,
+          name = name,
+          key = None
+        )
+
+      source.read(secretKey).decodeValue[Value]
+    }
+
+    def apply[Value](name: String, key: String)(
+      implicit decoder: ConfigDecoder[String, Value]
+    ): ConfigEntry[F, SecretKey, String, Value] = {
+      val secretKey =
+        SecretKey(
+          namespace = namespace,
+          name = name,
+          key = Some(key)
+        )
+
+      source.read(secretKey).decodeValue[Value]
+    }
   }
 
   final class SecretInNamespace private[kubernetes] (namespace: String, client: ApiClient) {
