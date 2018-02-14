@@ -1,0 +1,10 @@
+### Changes
+- Add `secretInNamespaceF` function for pure and safe secrets reading. ([#2][#2])  
+  There is an [example](https://github.com/ovotech/ciris-kubernetes#pure-usage) in the readme which shows how it can be used.
+
+### Updates
+- Update to Ciris 0.7.2. ([#2][#2])
+
+[#2]: https://github.com/ovotech/ciris-kubernetes/pull/2
+
+Released on 2018-02-14.
