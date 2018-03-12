@@ -72,6 +72,7 @@ The `secretInNamespace` function described above is not pure, but mostly safe to
 The `secretInNamespaceF` function accepts an `F[ApiClient]` where `F[_]: Sync`, and then suspends reading values into effect `F`. For example, `F` can be `IO` from [cats-effect][cats-effect], like in the following example. The example is the same as shown above, except it's using `secretInNamespaceF` for purity and safety.
 
 ```scala
+import cats.Eval
 import cats.effect.IO
 import ciris._
 import ciris.kubernetes._
@@ -85,7 +86,7 @@ final case class Config(
 )
 
 // Suspend creating the ApiClient
-val client = IO(io.kubernetes.client.util.Config.defaultClient())
+val client = IO.eval(Eval.later(io.kubernetes.client.util.Config.defaultClient()))
 
 // Set the namespace in which the secrets reside
 val secret = secretInNamespaceF("secrets", client)
