@@ -7,7 +7,7 @@ To get started with [SBT][sbt], simply add the following lines to your `build.sb
 ```scala
 resolvers += Resolver.bintrayRepo("ovotech", "maven")
 
-libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "0.3"
+libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "0.4"
 ```
 
 The library is published for Scala 2.10, 2.11, and 2.12.
