@@ -1,0 +1,8 @@
+### Updates
+- Update Ciris to v0.9.0. ([#4][#4])
+- Update Scala to v2.12.5. ([#5][#5])
+
+[#4]: https://github.com/ovotech/ciris-kubernetes/pull/4
+[#5]: https://github.com/ovotech/ciris-kubernetes/pull/5
+
+Released on 2018-03-21.
