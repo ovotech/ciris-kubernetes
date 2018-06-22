@@ -1,0 +1,22 @@
+### Changes
+- Add `defaultApiClient` for creating a memoized `ApiClient`. ([#7][#7])
+- Add `registerGcpAuthenticator` for memoized registration of authenticator. ([#7][#7])
+- Add dependency on `ciris-cats-effect`, in addition to the core module. ([#7][#7])
+- Replace `secretInNamespace` with what was previously `secretInNamespaceF`. ([#7][#7])
+  - The function now requires a `registerAuthenticator: F[Unit]` argument.
+  - The readme has been updated with a [usage example][usage example] of the new function.
+- Change to not automatically register the GCP authenticator. Instead, use the  
+  `registerAuthenticator` argument on `secretInNamespace`, together with  
+  the `registerGcpAuthenticator` function. ([#7][#7])
+- Remove support for Scala 2.10. ([#6][#6])
+
+### Updates
+- Update Ciris to v0.10.0. ([#6][#6])
+- Update Kuberenetes Client to v1.0.0. ([#6][#6])
+- Update Scala to v2.12.6. ([#6][#6])
+
+[usage example]: https://github.com/ovotech/ciris-kubernetes#usage
+[#6]: https://github.com/ovotech/ciris-kubernetes/pull/6
+[#7]: https://github.com/ovotech/ciris-kubernetes/pull/7
+
+Released on 2018-06-22.
