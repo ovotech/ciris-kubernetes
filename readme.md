@@ -10,7 +10,7 @@ resolvers += Resolver.bintrayRepo("ovotech", "maven")
 libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "0.5"
 ```
 
-The library is published for Scala 2.10, 2.11, and 2.12.
+The library is published for Scala 2.11 and 2.12.
 
 ### Usage
 Simply `import ciris.kubernetes._` and set the namespace for your secrets with `secretInNamespace`, like in the following example. You can then load secrets by specifying the secret name. If there is more than one entry for the secret, you can also specify the key to retrieve. There is also a pure and safe version `secretInNamespaceF` available for use; see the [Pure Usage](#pure-usage) section below for how to use it.
