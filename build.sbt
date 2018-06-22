@@ -9,6 +9,6 @@ releaseCrossBuild := true
 scalacOptions += "-language:higherKinds"
 
 libraryDependencies ++= Seq(
-  "is.cir" %% "ciris-core" % "0.9.0",
+  "is.cir" %% "ciris-core" % "0.10.0",
   "io.kubernetes" % "client-java" % "0.2"
 )
