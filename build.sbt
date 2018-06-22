@@ -10,5 +10,5 @@ scalacOptions += "-language:higherKinds"
 
 libraryDependencies ++= Seq(
   "is.cir" %% "ciris-core" % "0.10.0",
-  "io.kubernetes" % "client-java" % "0.2"
+  "io.kubernetes" % "client-java" % "1.0.0"
 )

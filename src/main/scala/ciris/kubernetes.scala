@@ -1,17 +1,16 @@
 package ciris
 
 import java.lang.reflect.Type
-import java.util.{Base64, Date}
+import java.util.Base64
 
 import ciris.api._
 import ciris.api.syntax._
 import com.google.gson._
+import io.kubernetes.client.ApiClient
 import io.kubernetes.client.apis.CoreV1Api
 import io.kubernetes.client.util.authenticators.GCPAuthenticator
 import io.kubernetes.client.util.{Config, KubeConfig}
-import io.kubernetes.client.{ApiClient, JSON}
 import okio.ByteString
-import org.joda.time.{DateTime, LocalDate}
 
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
@@ -40,20 +39,6 @@ object kubernetes {
     }
   }
 
-  // Workaround for https://github.com/kubernetes-client/java/issues/131
-  private val jsonWithBase64Decoding: JSON = {
-    val json = new JSON()
-    json.setGson {
-      new GsonBuilder()
-        .registerTypeAdapter(classOf[Date], new JSON.DateTypeAdapter)
-        .registerTypeAdapter(classOf[java.sql.Date], new JSON.SqlDateTypeAdapter)
-        .registerTypeAdapter(classOf[DateTime], new JSON.DateTimeTypeAdapter)
-        .registerTypeAdapter(classOf[LocalDate], new json.LocalDateTypeAdapter)
-        .registerTypeAdapter(classOf[Array[Byte]], new ByteArrayBase64StringTypeAdapter)
-        .create()
-    }
-  }
-
   final case class SecretKey(
     namespace: String,
     name: String,
@@ -73,7 +58,7 @@ object kubernetes {
     name: String,
     namespace: String
   ): Try[Map[String, Array[Byte]]] = Try {
-    val api = new CoreV1Api(client.setJSON(jsonWithBase64Decoding))
+    val api = new CoreV1Api(client)
     api.readNamespacedSecret(name, namespace, null, null, null).getData.asScala.toMap
   }
 
