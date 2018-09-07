@@ -8,7 +8,7 @@ releaseCrossBuild := true
 
 scalacOptions += "-language:higherKinds"
 
-val cirisVersion = "0.10.0"
+val cirisVersion = "0.11.0"
 
 libraryDependencies ++= Seq(
   "is.cir" %% "ciris-core" % cirisVersion,
