@@ -1,7 +1,6 @@
 package ciris
 
-import _root_.cats.Eval
-import _root_.cats.effect.{IO, LiftIO}
+import _root_.cats.effect.{Concurrent, IO}
 import ciris.api._
 import ciris.api.syntax._
 import io.kubernetes.client.ApiClient
@@ -72,17 +71,11 @@ object kubernetes {
       secretValue
     }
 
-  def defaultApiClient[F[_]](implicit F: LiftIO[F]): F[F[ApiClient]] = {
-    val client = Eval.later(Config.defaultClient())
-    val memoized = IO(F.liftIO(IO.eval(client)))
-    F.liftIO(memoized)
-  }
+  def defaultApiClient[F[_]](implicit F: Concurrent[F]): F[F[ApiClient]] =
+    Concurrent.memoize(F.delay(Config.defaultClient()))
 
-  def registerGcpAuthenticator[F[_]](implicit F: LiftIO[F]): F[F[Unit]] = {
-    val register = Eval.later(KubeConfig.registerAuthenticator(new GCPAuthenticator))
-    val memoized = IO(F.liftIO(IO.eval(register)))
-    F.liftIO(memoized)
-  }
+  def registerGcpAuthenticator[F[_]](implicit F: Concurrent[F]): F[F[Unit]] =
+    Concurrent.memoize(F.delay(KubeConfig.registerAuthenticator(new GCPAuthenticator)))
 
   def secretInNamespace[F[_]: Sync](
     namespace: String,
