@@ -1,0 +1,17 @@
+### Changes
+- Change to require `Concurrent` instead of `LiftIO` for  
+  `defaultApiClient` and `registerGcpAuthenticator`. ([#10][#10])
+
+### Updates
+- Update Ciris to v0.11.0. ([#9][#9])
+- Update Kubernetes Client to v2.0.0. ([#11][#11])
+
+### Miscellaneous
+- Update sbt and plugins to latest versions. ([#8][#8])
+
+[#8]: https://github.com/ovotech/ciris-kubernetes/pull/8
+[#9]: https://github.com/ovotech/ciris-kubernetes/pull/9
+[#10]: https://github.com/ovotech/ciris-kubernetes/pull/10
+[#11]: https://github.com/ovotech/ciris-kubernetes/pull/11
+
+Released on 2018-09-07.
