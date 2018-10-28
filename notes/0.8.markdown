@@ -1,0 +1,15 @@
+### Changes
+- Change to accept `ApiClient` (instead of `F[ApiClient]`) for `secretInNamespace`.
+- Change to make the `ConfigKeyType` publicly available as `SecretKeyType`.
+- Change to not memoize in `registerGcpAuth` and `defaultApiClient`.
+- Remove `registerAuthenticator` argument for `secretInNamespace`.
+- Rename `registerGcpAuthenticator` to `registerGcpAuth`.
+
+### Updates
+- Update Kubernetes Client to v3.0.0.
+- Update Scala to 2.12.7.
+
+### Miscellaneous
+- Update sbt to 1.2.6.
+
+Released on 2018-10-28.
