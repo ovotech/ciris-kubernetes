@@ -31,9 +31,9 @@ final case class Config(
 
 val config: IO[Config] =
   for {
-    registerAuthenticator <- registerGcpAuthenticator[IO]
+    _ <- registerGcpAuth[IO]
     apiClient <- defaultApiClient[IO]
-    secret = secretInNamespace("secrets", apiClient, registerAuthenticator)
+    secret = secretInNamespace("secrets", apiClient)
     config <- loadConfig(
       secret[Secret[String]]("apiKey"), // Key can be omitted if secret has only one entry
       secret[String]("username"),

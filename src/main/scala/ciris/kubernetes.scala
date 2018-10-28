@@ -1,8 +1,6 @@
 package ciris
 
-import _root_.cats.effect.{Concurrent, IO}
 import ciris.api._
-import ciris.api.syntax._
 import io.kubernetes.client.ApiClient
 import io.kubernetes.client.apis.CoreV1Api
 import io.kubernetes.client.util.authenticators.GCPAuthenticator
@@ -24,7 +22,7 @@ object kubernetes {
     }
   }
 
-  private val secretKeyType: ConfigKeyType[SecretKey] =
+  val SecretKeyType: ConfigKeyType[SecretKey] =
     ConfigKeyType("kubernetes secret")
 
   private def fetchSecretEntries(
@@ -37,11 +35,11 @@ object kubernetes {
   }
 
   private def secretSource(client: ApiClient): ConfigSource[Id, SecretKey, String] =
-    ConfigSource(secretKeyType) { secret =>
+    ConfigSource(SecretKeyType) { secret =>
       val secretEntries =
         fetchSecretEntries(client, secret.name, secret.namespace) match {
           case Success(entries) => Right(entries)
-          case Failure(cause)   => Left(ConfigError.readException(secret, secretKeyType, cause))
+          case Failure(cause)   => Left(ConfigError.readException(secret, SecretKeyType, cause))
         }
 
       val secretValueBytes =
@@ -53,13 +51,13 @@ object kubernetes {
               entries
                 .get(key)
                 .toRight(ConfigError {
-                  s"${secretKeyType.name.capitalize} [$secret] exists but there is no entry with key [$key]; $availableKeys"
+                  s"${SecretKeyType.name.capitalize} [$secret] exists but there is no entry with key [$key]; $availableKeys"
                 })
             case None if entries.size == 1 =>
               Right(entries.values.head)
             case _ =>
               Left(ConfigError {
-                s"There is more than one entry available for ${secretKeyType.name} [$secret], please specify which key to use; $availableKeys"
+                s"There is more than one entry available for ${SecretKeyType.name} [$secret], please specify which key to use; $availableKeys"
               })
           }
         }
@@ -71,36 +69,31 @@ object kubernetes {
       secretValue
     }
 
-  def defaultApiClient[F[_]](implicit F: Concurrent[F]): F[F[ApiClient]] =
-    Concurrent.memoize(F.delay(Config.defaultClient()))
+  def defaultApiClient[F[_]](implicit F: Sync[F]): F[ApiClient] =
+    F.suspend(F.pure(Config.defaultClient()))
 
-  def registerGcpAuthenticator[F[_]](implicit F: Concurrent[F]): F[F[Unit]] =
-    Concurrent.memoize(F.delay(KubeConfig.registerAuthenticator(new GCPAuthenticator)))
+  def registerGcpAuth[F[_]](implicit F: Sync[F]): F[Unit] =
+    F.suspend(F.pure(KubeConfig.registerAuthenticator(new GCPAuthenticator)))
 
-  def secretInNamespace[F[_]: Sync](
+  def secretInNamespace[F[_]](
     namespace: String,
-    apiClient: F[ApiClient],
-    registerAuthenticator: F[Unit]
-  ): SecretInNamespace[F] =
+    apiClient: ApiClient
+  )(implicit F: Sync[F]): SecretInNamespace[F] =
     new SecretInNamespace[F](
       namespace = namespace,
-      apiClient = apiClient,
-      registerAuthenticator = registerAuthenticator
+      apiClient = apiClient
     )
 
-  final class SecretInNamespace[F[_]: Sync] private[kubernetes] (
+  final class SecretInNamespace[F[_]] private[kubernetes] (
     namespace: String,
-    apiClient: F[ApiClient],
-    registerAuthenticator: F[Unit]
-  ) {
+    apiClient: ApiClient
+  )(implicit F: Sync[F]) {
     private val source: ConfigSource[F, SecretKey, String] =
-      ConfigSource.applyF(secretKeyType) { key =>
-        for {
-          _ <- registerAuthenticator
-          client <- apiClient
-          source = secretSource(client).suspendF[F]
-          value <- source.read(key).value
-        } yield value
+      ConfigSource.applyF(SecretKeyType) { key =>
+        secretSource(apiClient)
+          .suspendF[F]
+          .read(key)
+          .value
       }
 
     def apply[Value](name: String)(
