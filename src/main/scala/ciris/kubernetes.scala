@@ -1,7 +1,7 @@
 package ciris
 
 import ciris.api._
-import io.kubernetes.client.ApiClient
+import io.kubernetes.client.{ApiClient, ApiException}
 import io.kubernetes.client.apis.CoreV1Api
 import io.kubernetes.client.util.authenticators.GCPAuthenticator
 import io.kubernetes.client.util.{Config, KubeConfig}
@@ -39,7 +39,10 @@ object kubernetes {
       val secretEntries =
         fetchSecretEntries(client, secret.name, secret.namespace) match {
           case Success(entries) => Right(entries)
-          case Failure(cause)   => Left(ConfigError.readException(secret, SecretKeyType, cause))
+          case Failure(cause: ApiException) if cause.getMessage == "Not Found" =>
+            Left(ConfigError.missingKey(secret, SecretKeyType))
+          case Failure(cause) =>
+            Left(ConfigError.readException(secret, SecretKeyType, cause))
         }
 
       val secretValueBytes =
