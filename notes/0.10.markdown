@@ -1,0 +1,6 @@
+### Changes
+- Change to detect and use proper error for missing keys. ([#12][#12])
+
+Released on 2018-11-15.
+
+[#12]: https://github.com/ovotech/ciris-kubernetes/pull/12
