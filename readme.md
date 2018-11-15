@@ -57,7 +57,7 @@ We've now described how to load the configuration, so let's try to actually load
 config.unsafeRunSync()
 // ciris.ConfigException: configuration loading failed with the following errors.
 //
-//   - Exception while reading kubernetes secret [namespace = secrets, name = apiKey]: io.kubernetes.client.ApiException: Not Found.
+//   - Missing kubernetes secret [namespace = secrets, name = apiKey].
 //   - There is more than one entry available for kubernetes secret [namespace = secrets, name = username], please specify which key to use; available keys are: admin, user.
 //   - Kubernetes secret [namespace = secrets, name = defaults, key = timeoutt] exists but there is no entry with key [timeoutt]; available keys are: port, timeout.
 //
