@@ -1,0 +1,6 @@
+### Updates
+- Update Ciris to v0.12.1.
+- Update Kubernetes Client to v4.0.0.
+- Update Scala to 2.12.8.
+
+Released on 2019-03-14.
