@@ -13,5 +13,5 @@ val cirisVersion = "0.12.1"
 libraryDependencies ++= Seq(
   "is.cir" %% "ciris-core" % cirisVersion,
   "is.cir" %% "ciris-cats-effect" % cirisVersion,
-  "io.kubernetes" % "client-java" % "4.0.0"
+  "io.kubernetes" % "client-java" % "5.0.0"
 )
