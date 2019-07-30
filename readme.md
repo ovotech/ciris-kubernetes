@@ -71,6 +71,45 @@ config.unsafeRunSync()
 //   ... 36 elided
 ```
 
+#### ConfigMaps
+
+ConfigMaps are supported and these work in much the same way as secrets.
+The following example demonstrates using configMaps for a Pizza delivery API.
+
+```scala
+import cats.effect.IO
+import ciris._
+import ciris.cats.effect._
+import ciris.kubernetes._
+import ciris.syntax._
+
+final case class Config(
+  appName: String,
+  pizzaBrand: String,
+  deliveryRadius: Int,
+  isDeliveryCharge: Boolean 
+)
+
+val config: IO[Config] =
+  for {
+    _ <- registerGcpAuth[IO]
+    apiClient <- defaultApiClient[IO]
+    configMap = configMapInNamespace("pizza", apiClient)
+    config <- loadConfig(
+      configMap[String]("pizzaBrand"), // Key can be omitted if configMap has only one entry
+      configMap[Int]("delivery", "radius"), // Key is necessary if configMap has multiple entries
+      configMap[Boolean]("delivery", "charge")
+    ) { (pizzaBrand, deliveryRadius, isDeliveryCharge) =>
+      Config(
+        appName = "my-pizza-api",
+        pizzaBrand = pizzaBrand,
+        deliveryRadius = deliveryRadius,
+        isDeliveryCharge = isDeliveryCharge 
+      )
+    }.orRaiseThrowable
+  } yield config
+```
+
 [cats-effect]: https://github.com/typelevel/cats-effect
 [ciris]: https://cir.is
 [kubernetes-java-client]: https://github.com/kubernetes-client/java
