@@ -11,33 +11,31 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 object kubernetes {
-
-  sealed trait ConfigEntryKey {
+  sealed abstract class KubernetesKey {
     def namespace: String
+
     def name: String
+
     def key: Option[String]
 
-    def show: String = key match {
-      case Some(key) => s"namespace = $namespace, name = $name, key = $key"
-      case None      => s"namespace = $namespace, name = $name"
-    }
+    override final def toString: String =
+      key match {
+        case Some(key) => s"namespace = $namespace, name = $name, key = $key"
+        case None      => s"namespace = $namespace, name = $name"
+      }
   }
 
   final case class SecretKey(
     namespace: String,
     name: String,
     key: Option[String]
-  ) extends ConfigEntryKey {
-    override def toString: String = show
-  }
+  ) extends KubernetesKey
 
   final case class ConfigMapKey(
     namespace: String,
     name: String,
     key: Option[String]
-  ) extends ConfigEntryKey {
-    override def toString: String = show
-  }
+  ) extends KubernetesKey
 
   val SecretKeyType: ConfigKeyType[SecretKey] =
     ConfigKeyType("kubernetes secret")
@@ -60,71 +58,63 @@ object kubernetes {
     namespace: String
   ): Try[Map[String, String]] = Try {
     val api = new CoreV1Api(client)
-    api.readNamespacedConfigMap(name, namespace, null, null, null).getData().asScala.toMap
+    api.readNamespacedConfigMap(name, namespace, null, null, null).getData.asScala.toMap
   }
 
-  private def parseFetchResult[K, T](
-    fetchResult: Try[T],
-    ConfigType: ConfigKeyType[K],
-    config: K
-  ): Either[ConfigError, T] =
+  private def parseFetchResult[K, V](
+    key: K,
+    keyType: ConfigKeyType[K],
+    fetchResult: Try[V]
+  ): Either[ConfigError, V] =
     fetchResult match {
-      case Success(entries) => Right(entries)
+      case Success(entries) =>
+        Right(entries)
       case Failure(cause: ApiException) if cause.getMessage == "Not Found" =>
-        Left(ConfigError.missingKey(config, ConfigType))
+        Left(ConfigError.missingKey(key, keyType))
       case Failure(cause) =>
-        Left(ConfigError.readException(config, ConfigType, cause))
+        Left(ConfigError.readException(key, keyType, cause))
     }
 
-  private def pickEntry[V, T <: ConfigEntryKey](
-    entries: Map[String, V],
-    configEntry: T,
-    ConfigType: ConfigKeyType[T]
-  ) = {
+  private def selectEntry[K <: KubernetesKey, V](
+    entry: K,
+    keyType: ConfigKeyType[K],
+    entries: Map[String, V]
+  ): Either[ConfigError, V] = {
     def availableKeys = s"available keys are: ${entries.keys.toList.sorted.mkString(", ")}"
 
-    configEntry.key match {
+    entry.key match {
       case Some(key) =>
         entries
           .get(key)
-          .toRight(ConfigError {
-            s"${ConfigType.name.capitalize} [$configEntry] exists but there is no entry with key [$key]; $availableKeys"
-          })
+          .toRight {
+            ConfigError {
+              s"${keyType.name.capitalize} [$entry] exists but there is no entry with key [$key]; $availableKeys"
+            }
+          }
       case None if entries.size == 1 =>
         Right(entries.values.head)
       case _ =>
-        Left(ConfigError {
-          s"There is more than one entry available for ${ConfigType.name} [$configEntry], please specify which key to use; $availableKeys"
-        })
+        Left {
+          ConfigError {
+            s"There is more than one entry available for ${keyType.name} [$entry], please specify which key to use; $availableKeys"
+          }
+        }
     }
   }
 
   private def secretSource(client: ApiClient): ConfigSource[Id, SecretKey, String] =
     ConfigSource(SecretKeyType) { secret =>
-      val secretEntries =
-        fetchSecretEntries(client, secret.name, secret.namespace) match {
-          case fetchResult => parseFetchResult(fetchResult, SecretKeyType, secret)
-        }
-
-      val secretValueBytes = secretEntries.right
-        .flatMap(pickEntry(_, secret, SecretKeyType))
-
-      val secretValue =
-        secretValueBytes.right
-          .map(bytes => ByteString.of(bytes, 0, bytes.length).utf8)
-
-      secretValue
+      val fetchResult = fetchSecretEntries(client, secret.name, secret.namespace)
+      val parseResult = parseFetchResult(secret, SecretKeyType, fetchResult)
+      val secretResult = parseResult.right.flatMap(selectEntry(secret, SecretKeyType, _))
+      secretResult.right.map(bytes => ByteString.of(bytes, 0, bytes.length).utf8)
     }
 
   private def configMapSource(client: ApiClient): ConfigSource[Id, ConfigMapKey, String] =
     ConfigSource(ConfigMapKeyType) { configMap =>
-      val entries =
-        fetchConfigMapEntries(client, configMap.name, configMap.namespace) match {
-          case fetchResult => parseFetchResult(fetchResult, ConfigMapKeyType, configMap)
-        }
-
-      entries.right
-        .flatMap(pickEntry(_, configMap, ConfigMapKeyType))
+      val fetchResult = fetchConfigMapEntries(client, configMap.name, configMap.namespace)
+      val parseResult = parseFetchResult(configMap, ConfigMapKeyType, fetchResult)
+      parseResult.right.flatMap(selectEntry(configMap, ConfigMapKeyType, _))
     }
 
   def defaultApiClient[F[_]](implicit F: Sync[F]): F[ApiClient] =
@@ -234,5 +224,4 @@ object kubernetes {
     override def toString: String =
       s"ConfigMapInNamespace($namespace)"
   }
-
 }
