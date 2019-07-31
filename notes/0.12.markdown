@@ -1,0 +1,10 @@
+### Changes
+- Add support for config maps. Thanks [@msinton](https://github.com/msinton)! ([#14][#14])
+
+### Updates
+- Update Kubernetes Client to v5.0.0. Thanks [@bplommer](https://github.com/bplommer)! ([#13][#13])
+
+[#13]: https://github.com/ovotech/ciris-kubernetes/pull/13
+[#14]: https://github.com/ovotech/ciris-kubernetes/pull/14
+
+Released on 2019-07-31.
