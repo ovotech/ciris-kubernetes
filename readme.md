@@ -1,7 +1,9 @@
 ## Ciris Kubernetes
-Kubernetes secrets support for [Ciris][ciris] using the official [Kubernetes Java client][kubernetes-java-client].
+
+Kubernetes support for [Ciris][ciris] using the official [Kubernetes Java client][kubernetes-java-client].
 
 ### Getting Started
+
 To get started with [sbt][sbt], simply add the following lines to your `build.sbt` file.
 
 ```scala
@@ -13,6 +15,11 @@ libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "0.10"
 The library is published for Scala 2.11 and 2.12.
 
 ### Usage
+
+The library supports Kubernetes secrets and config maps.
+
+#### Secrets
+
 Start with `import ciris.kubernetes._`, create an `ApiClient`, and register any authenticators. You can then set the namespace for your secrets with `secretInNamespace`, like in the following example. You can then load secrets by specifying the secret name. If there is more than one entry for the secret, you can also specify the key to retrieve.
 
 ```scala
@@ -69,6 +76,44 @@ config.unsafeRunSync()
 //   at cats.effect.IO.unsafeRunTimed(IO.scala:307)
 //   at cats.effect.IO.unsafeRunSync(IO.scala:242)
 //   ... 36 elided
+```
+
+#### Config Maps
+
+Config maps are supported in a similar fashion to how secrets are supported.
+
+```scala
+import cats.effect.IO
+import ciris._
+import ciris.cats.effect._
+import ciris.kubernetes._
+import ciris.syntax._
+
+final case class Config(
+  appName: String,
+  pizzaBrand: String,
+  deliveryRadius: Int,
+  isDeliveryCharge: Boolean
+)
+
+val config: IO[Config] =
+  for {
+    _ <- registerGcpAuth[IO]
+    apiClient <- defaultApiClient[IO]
+    configMap = configMapInNamespace("pizza", apiClient)
+    config <- loadConfig(
+      configMap[String]("pizzaBrand"), // Key can be omitted if config map has only one entry
+      configMap[Int]("delivery", "radius"), // Key is necessary if config map has multiple entries
+      configMap[Boolean]("delivery", "charge")
+    ) { (pizzaBrand, deliveryRadius, isDeliveryCharge) =>
+      Config(
+        appName = "my-pizza-api",
+        pizzaBrand = pizzaBrand,
+        deliveryRadius = deliveryRadius,
+        isDeliveryCharge = isDeliveryCharge
+      )
+    }.orRaiseThrowable
+  } yield config
 ```
 
 [cats-effect]: https://github.com/typelevel/cats-effect
