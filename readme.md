@@ -1,7 +1,9 @@
 ## Ciris Kubernetes
-Kubernetes secrets support for [Ciris][ciris] using the official [Kubernetes Java client][kubernetes-java-client].
+
+Kubernetes support for [Ciris][ciris] using the official [Kubernetes Java client][kubernetes-java-client].
 
 ### Getting Started
+
 To get started with [sbt][sbt], simply add the following lines to your `build.sbt` file.
 
 ```scala
@@ -13,6 +15,11 @@ libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "0.10"
 The library is published for Scala 2.11 and 2.12.
 
 ### Usage
+
+The library supports Kubernetes secrets and config maps.
+
+#### Secrets
+
 Start with `import ciris.kubernetes._`, create an `ApiClient`, and register any authenticators. You can then set the namespace for your secrets with `secretInNamespace`, like in the following example. You can then load secrets by specifying the secret name. If there is more than one entry for the secret, you can also specify the key to retrieve.
 
 ```scala
@@ -71,10 +78,9 @@ config.unsafeRunSync()
 //   ... 36 elided
 ```
 
-#### ConfigMaps
+#### Config Maps
 
-ConfigMaps are supported and these work in much the same way as secrets.
-The following example demonstrates using configMaps for a Pizza delivery API.
+Config maps are supported in a similar fashion to how secrets are supported.
 
 ```scala
 import cats.effect.IO
@@ -87,7 +93,7 @@ final case class Config(
   appName: String,
   pizzaBrand: String,
   deliveryRadius: Int,
-  isDeliveryCharge: Boolean 
+  isDeliveryCharge: Boolean
 )
 
 val config: IO[Config] =
@@ -96,15 +102,15 @@ val config: IO[Config] =
     apiClient <- defaultApiClient[IO]
     configMap = configMapInNamespace("pizza", apiClient)
     config <- loadConfig(
-      configMap[String]("pizzaBrand"), // Key can be omitted if configMap has only one entry
-      configMap[Int]("delivery", "radius"), // Key is necessary if configMap has multiple entries
+      configMap[String]("pizzaBrand"), // Key can be omitted if config map has only one entry
+      configMap[Int]("delivery", "radius"), // Key is necessary if config map has multiple entries
       configMap[Boolean]("delivery", "charge")
     ) { (pizzaBrand, deliveryRadius, isDeliveryCharge) =>
       Config(
         appName = "my-pizza-api",
         pizzaBrand = pizzaBrand,
         deliveryRadius = deliveryRadius,
-        isDeliveryCharge = isDeliveryCharge 
+        isDeliveryCharge = isDeliveryCharge
       )
     }.orRaiseThrowable
   } yield config
