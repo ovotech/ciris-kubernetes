@@ -1,6 +1,6 @@
 package ciris
 
-import cats.effect.Sync
+import cats.effect.{Blocker, Sync}
 import cats.implicits._
 import io.kubernetes.client.{ApiClient, ApiException}
 import io.kubernetes.client.apis.CoreV1Api
@@ -9,33 +9,49 @@ import java.nio.charset.StandardCharsets
 import scala.collection.JavaConverters._
 
 package object kubernetes {
-  final def configMapInNamespace[F[_]](
-    namespace: String
-  )(implicit F: Sync[F]): F[ConfigMapInNamespace] =
-    defaultApiClient[F].map(configMapInNamespace(namespace, _))
+  final def configMapInNamespace(
+    namespace: String,
+    blocker: Blocker
+  ): ConfigValue[ConfigMapInNamespace] =
+    defaultApiClient(blocker).map(configMapInNamespace(namespace, blocker, _))
 
-  final def configMapInNamespace(namespace: String, client: ApiClient): ConfigMapInNamespace =
-    ConfigMapInNamespace(namespace, client)
+  final def configMapInNamespace(
+    namespace: String,
+    blocker: Blocker,
+    client: ApiClient
+  ): ConfigMapInNamespace =
+    ConfigMapInNamespace(namespace, client, blocker)
 
-  final def defaultApiClient[F[_]](implicit F: Sync[F]): F[ApiClient] =
-    F.delay(Config.defaultClient())
+  final def defaultApiClient(blocker: Blocker): ConfigValue[ApiClient] =
+    ConfigValue.blockOn(blocker) {
+      ConfigValue.suspend {
+        val client = Config.defaultClient()
+        ConfigValue.default(client)
+      }
+    }
 
-  final def secretInNamespace[F[_]](namespace: String)(
-    implicit F: Sync[F]
-  ): F[SecretInNamespace] =
-    defaultApiClient[F].map(secretInNamespace(namespace, _))
+  final def secretInNamespace(
+    namespace: String,
+    blocker: Blocker
+  ): ConfigValue[SecretInNamespace] =
+    defaultApiClient(blocker).map(secretInNamespace(namespace, blocker, _))
 
-  final def secretInNamespace(namespace: String, client: ApiClient): SecretInNamespace =
-    SecretInNamespace(namespace, client)
+  final def secretInNamespace(
+    namespace: String,
+    blocker: Blocker,
+    client: ApiClient
+  ): SecretInNamespace =
+    SecretInNamespace(namespace, client, blocker)
 
   private[kubernetes] final def secret(
     client: ApiClient,
     name: String,
     namespace: String,
-    key: Option[String]
+    key: Option[String],
+    blocker: Blocker
   ): ConfigValue[String] = {
     val configKey = secretConfigKey(namespace, name, key)
-    secretEntries(client, configKey, name, namespace)
+    secretEntries(client, configKey, name, namespace, blocker)
       .flatMap(selectConfigEntry(key, configKey, _))
       .map(new String(_, StandardCharsets.UTF_8))
   }
@@ -44,10 +60,11 @@ package object kubernetes {
     client: ApiClient,
     name: String,
     namespace: String,
-    key: Option[String]
+    key: Option[String],
+    blocker: Blocker
   ): ConfigValue[String] = {
     val configKey = configMapConfigKey(namespace, name, key)
-    configMapEntries(client, configKey, name, namespace)
+    configMapEntries(client, configKey, name, namespace, blocker)
       .flatMap(selectConfigEntry(key, configKey, _))
   }
 
@@ -88,21 +105,24 @@ package object kubernetes {
     client: ApiClient,
     configKey: ConfigKey,
     name: String,
-    namespace: String
+    namespace: String,
+    blocker: Blocker
   ): ConfigValue[Map[String, Array[Byte]]] =
-    ConfigValue.suspend {
-      try {
-        val entries =
-          new CoreV1Api(client)
-            .readNamespacedSecret(name, namespace, null, null, null)
-            .getData
-            .asScala
-            .toMap
+    ConfigValue.blockOn(blocker) {
+      ConfigValue.suspend {
+        try {
+          val entries =
+            new CoreV1Api(client)
+              .readNamespacedSecret(name, namespace, null, null, null)
+              .getData
+              .asScala
+              .toMap
 
-        ConfigValue.default(entries)
-      } catch {
-        case cause: ApiException if cause.getMessage == "Not Found" =>
-          ConfigValue.missing(configKey)
+          ConfigValue.default(entries)
+        } catch {
+          case cause: ApiException if cause.getMessage == "Not Found" =>
+            ConfigValue.missing(configKey)
+        }
       }
     }
 
@@ -110,21 +130,24 @@ package object kubernetes {
     client: ApiClient,
     configKey: ConfigKey,
     name: String,
-    namespace: String
+    namespace: String,
+    blocker: Blocker
   ): ConfigValue[Map[String, String]] =
-    ConfigValue.suspend {
-      try {
-        val entries =
-          new CoreV1Api(client)
-            .readNamespacedConfigMap(name, namespace, null, null, null)
-            .getData
-            .asScala
-            .toMap
+    ConfigValue.blockOn(blocker) {
+      ConfigValue.suspend {
+        try {
+          val entries =
+            new CoreV1Api(client)
+              .readNamespacedConfigMap(name, namespace, null, null, null)
+              .getData
+              .asScala
+              .toMap
 
-        ConfigValue.default(entries)
-      } catch {
-        case cause: ApiException if cause.getMessage == "Not Found" =>
-          ConfigValue.missing(configKey)
+          ConfigValue.default(entries)
+        } catch {
+          case cause: ApiException if cause.getMessage == "Not Found" =>
+            ConfigValue.missing(configKey)
+        }
       }
     }
 

@@ -1,0 +1,5 @@
+### Changes
+
+- Change to require `Blocker` for blocking operations.
+
+Released on 2019-10-28.
