@@ -2,16 +2,11 @@ organization := "com.ovoenergy"
 bintrayOrganization := Some("ovotech")
 licenses += ("MIT", url("https://opensource.org/licenses/MIT"))
 
-scalaVersion := "2.12.8"
-crossScalaVersions := Seq("2.11.12", scalaVersion.value)
+scalaVersion := "2.13.1"
+crossScalaVersions := Seq(scalaVersion.value, "2.12.10")
 releaseCrossBuild := true
 
-scalacOptions += "-language:higherKinds"
-
-val cirisVersion = "0.12.1"
-
 libraryDependencies ++= Seq(
-  "is.cir" %% "ciris-core" % cirisVersion,
-  "is.cir" %% "ciris-cats-effect" % cirisVersion,
+  "is.cir" %% "ciris" % "1.0.0",
   "io.kubernetes" % "client-java" % "6.0.1"
 )

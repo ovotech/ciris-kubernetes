@@ -1,227 +1,150 @@
 package ciris
 
-import ciris.api._
+import cats.effect.Sync
+import cats.implicits._
 import io.kubernetes.client.{ApiClient, ApiException}
 import io.kubernetes.client.apis.CoreV1Api
-import io.kubernetes.client.util.authenticators.GCPAuthenticator
-import io.kubernetes.client.util.{Config, KubeConfig}
-import okio.ByteString
-
+import io.kubernetes.client.util.Config
+import java.nio.charset.StandardCharsets
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
 
-object kubernetes {
-  sealed abstract class KubernetesKey {
-    def namespace: String
+package object kubernetes {
+  final def configMapInNamespace[F[_]](
+    namespace: String
+  )(implicit F: Sync[F]): F[ConfigMapInNamespace] =
+    defaultApiClient[F].map(configMapInNamespace(namespace, _))
 
-    def name: String
+  final def configMapInNamespace(namespace: String, client: ApiClient): ConfigMapInNamespace =
+    ConfigMapInNamespace(namespace, client)
 
-    def key: Option[String]
+  final def defaultApiClient[F[_]](implicit F: Sync[F]): F[ApiClient] =
+    F.delay(Config.defaultClient())
 
-    override final def toString: String =
-      key match {
-        case Some(key) => s"namespace = $namespace, name = $name, key = $key"
-        case None      => s"namespace = $namespace, name = $name"
-      }
-  }
+  final def secretInNamespace[F[_]](namespace: String)(
+    implicit F: Sync[F]
+  ): F[SecretInNamespace] =
+    defaultApiClient[F].map(secretInNamespace(namespace, _))
 
-  final case class SecretKey(
-    namespace: String,
-    name: String,
-    key: Option[String]
-  ) extends KubernetesKey
+  final def secretInNamespace(namespace: String, client: ApiClient): SecretInNamespace =
+    SecretInNamespace(namespace, client)
 
-  final case class ConfigMapKey(
-    namespace: String,
-    name: String,
-    key: Option[String]
-  ) extends KubernetesKey
-
-  val SecretKeyType: ConfigKeyType[SecretKey] =
-    ConfigKeyType("kubernetes secret")
-
-  val ConfigMapKeyType: ConfigKeyType[ConfigMapKey] =
-    ConfigKeyType("kubernetes configMap")
-
-  private def fetchSecretEntries(
+  private[kubernetes] final def secret(
     client: ApiClient,
     name: String,
-    namespace: String
-  ): Try[Map[String, Array[Byte]]] = Try {
-    val api = new CoreV1Api(client)
-    api.readNamespacedSecret(name, namespace, null, null, null).getData.asScala.toMap
+    namespace: String,
+    key: Option[String]
+  ): ConfigValue[String] = {
+    val configKey = secretConfigKey(namespace, name, key)
+    secretEntries(client, configKey, name, namespace)
+      .flatMap(selectConfigEntry(key, configKey, _))
+      .map(new String(_, StandardCharsets.UTF_8))
   }
 
-  private def fetchConfigMapEntries(
+  private[kubernetes] final def configMap(
     client: ApiClient,
     name: String,
-    namespace: String
-  ): Try[Map[String, String]] = Try {
-    val api = new CoreV1Api(client)
-    api.readNamespacedConfigMap(name, namespace, null, null, null).getData.asScala.toMap
+    namespace: String,
+    key: Option[String]
+  ): ConfigValue[String] = {
+    val configKey = configMapConfigKey(namespace, name, key)
+    configMapEntries(client, configKey, name, namespace)
+      .flatMap(selectConfigEntry(key, configKey, _))
   }
 
-  private def parseFetchResult[K, V](
-    key: K,
-    keyType: ConfigKeyType[K],
-    fetchResult: Try[V]
-  ): Either[ConfigError, V] =
-    fetchResult match {
-      case Success(entries) =>
-        Right(entries)
-      case Failure(cause: ApiException) if cause.getMessage == "Not Found" =>
-        Left(ConfigError.missingKey(key, keyType))
-      case Failure(cause) =>
-        Left(ConfigError.readException(key, keyType, cause))
-    }
-
-  private def selectEntry[K <: KubernetesKey, V](
-    entry: K,
-    keyType: ConfigKeyType[K],
-    entries: Map[String, V]
-  ): Either[ConfigError, V] = {
+  private[this] final def selectConfigEntry[A](
+    key: Option[String],
+    configKey: ConfigKey,
+    entries: Map[String, A]
+  ): ConfigValue[A] = {
     def availableKeys = s"available keys are: ${entries.keys.toList.sorted.mkString(", ")}"
 
-    entry.key match {
+    key match {
       case Some(key) =>
-        entries
-          .get(key)
-          .toRight {
-            ConfigError {
-              s"${keyType.name.capitalize} [$entry] exists but there is no entry with key [$key]; $availableKeys"
+        entries.get(key) match {
+          case Some(value) =>
+            ConfigValue.loaded(configKey, value)
+
+          case None =>
+            ConfigValue.failed {
+              ConfigError {
+                s"${configKey.description.capitalize} exists but there is no entry with key [$key]; $availableKeys"
+              }
             }
-          }
+        }
+
       case None if entries.size == 1 =>
-        Right(entries.values.head)
-      case _ =>
-        Left {
+        ConfigValue.loaded(configKey, entries.values.head)
+
+      case None =>
+        ConfigValue.failed {
           ConfigError {
-            s"There is more than one entry available for ${keyType.name} [$entry], please specify which key to use; $availableKeys"
+            s"There is more than one entry available for ${configKey.description}, please specify which key to use; $availableKeys"
           }
         }
     }
   }
 
-  private def secretSource(client: ApiClient): ConfigSource[Id, SecretKey, String] =
-    ConfigSource(SecretKeyType) { secret =>
-      val fetchResult = fetchSecretEntries(client, secret.name, secret.namespace)
-      val parseResult = parseFetchResult(secret, SecretKeyType, fetchResult)
-      val secretResult = parseResult.right.flatMap(selectEntry(secret, SecretKeyType, _))
-      secretResult.right.map(bytes => ByteString.of(bytes, 0, bytes.length).utf8)
-    }
+  private[this] final def secretEntries(
+    client: ApiClient,
+    configKey: ConfigKey,
+    name: String,
+    namespace: String
+  ): ConfigValue[Map[String, Array[Byte]]] =
+    ConfigValue.suspend {
+      try {
+        val entries =
+          new CoreV1Api(client)
+            .readNamespacedSecret(name, namespace, null, null, null)
+            .getData
+            .asScala
+            .toMap
 
-  private def configMapSource(client: ApiClient): ConfigSource[Id, ConfigMapKey, String] =
-    ConfigSource(ConfigMapKeyType) { configMap =>
-      val fetchResult = fetchConfigMapEntries(client, configMap.name, configMap.namespace)
-      val parseResult = parseFetchResult(configMap, ConfigMapKeyType, fetchResult)
-      parseResult.right.flatMap(selectEntry(configMap, ConfigMapKeyType, _))
-    }
-
-  def defaultApiClient[F[_]](implicit F: Sync[F]): F[ApiClient] =
-    F.suspend(F.pure(Config.defaultClient()))
-
-  def registerGcpAuth[F[_]](implicit F: Sync[F]): F[Unit] =
-    F.suspend(F.pure(KubeConfig.registerAuthenticator(new GCPAuthenticator)))
-
-  def secretInNamespace[F[_]](
-    namespace: String,
-    apiClient: ApiClient
-  )(implicit F: Sync[F]): SecretInNamespace[F] =
-    new SecretInNamespace[F](
-      namespace = namespace,
-      apiClient = apiClient
-    )
-
-  final class SecretInNamespace[F[_]] private[kubernetes] (
-    namespace: String,
-    apiClient: ApiClient
-  )(implicit F: Sync[F]) {
-    private val source: ConfigSource[F, SecretKey, String] =
-      ConfigSource.applyF(SecretKeyType) { key =>
-        secretSource(apiClient)
-          .suspendF[F]
-          .read(key)
-          .value
+        ConfigValue.default(entries)
+      } catch {
+        case cause: ApiException if cause.getMessage == "Not Found" =>
+          ConfigValue.missing(configKey)
       }
-
-    def apply[Value](name: String)(
-      implicit decoder: ConfigDecoder[String, Value]
-    ): ConfigEntry[F, SecretKey, String, Value] = {
-      val secretKey =
-        SecretKey(
-          namespace = namespace,
-          name = name,
-          key = None
-        )
-
-      source.read(secretKey).decodeValue[Value]
     }
 
-    def apply[Value](name: String, key: String)(
-      implicit decoder: ConfigDecoder[String, Value]
-    ): ConfigEntry[F, SecretKey, String, Value] = {
-      val secretKey =
-        SecretKey(
-          namespace = namespace,
-          name = name,
-          key = Some(key)
-        )
+  private[this] final def configMapEntries(
+    client: ApiClient,
+    configKey: ConfigKey,
+    name: String,
+    namespace: String
+  ): ConfigValue[Map[String, String]] =
+    ConfigValue.suspend {
+      try {
+        val entries =
+          new CoreV1Api(client)
+            .readNamespacedConfigMap(name, namespace, null, null, null)
+            .getData
+            .asScala
+            .toMap
 
-      source.read(secretKey).decodeValue[Value]
-    }
-
-    override def toString: String =
-      s"SecretInNamespace($namespace)"
-  }
-
-  def configMapInNamespace[F[_]](
-    namespace: String,
-    apiClient: ApiClient
-  )(implicit F: Sync[F]): ConfigMapInNamespace[F] =
-    new ConfigMapInNamespace[F](
-      namespace = namespace,
-      apiClient = apiClient
-    )
-
-  final class ConfigMapInNamespace[F[_]] private[kubernetes] (
-    namespace: String,
-    apiClient: ApiClient
-  )(implicit F: Sync[F]) {
-    private val source: ConfigSource[F, ConfigMapKey, String] =
-      ConfigSource.applyF(ConfigMapKeyType) { key =>
-        configMapSource(apiClient)
-          .suspendF[F]
-          .read(key)
-          .value
+        ConfigValue.default(entries)
+      } catch {
+        case cause: ApiException if cause.getMessage == "Not Found" =>
+          ConfigValue.missing(configKey)
       }
-
-    def apply[Value](name: String)(
-      implicit decoder: ConfigDecoder[String, Value]
-    ): ConfigEntry[F, ConfigMapKey, String, Value] = {
-      val configMapKey =
-        ConfigMapKey(
-          namespace = namespace,
-          name = name,
-          key = None
-        )
-
-      source.read(configMapKey).decodeValue[Value]
     }
 
-    def apply[Value](name: String, key: String)(
-      implicit decoder: ConfigDecoder[String, Value]
-    ): ConfigEntry[F, ConfigMapKey, String, Value] = {
-      val configMapKey =
-        ConfigMapKey(
-          namespace = namespace,
-          name = name,
-          key = Some(key)
-        )
+  private[this] final def secretConfigKey(
+    namespace: String,
+    name: String,
+    key: Option[String]
+  ): ConfigKey =
+    ConfigKey(key match {
+      case Some(key) => s"kubernetes secret [namespace = $namespace, name = $name, key = $key]"
+      case None      => s"kubernetes secret [namespace = $namespace, name = $name]"
+    })
 
-      source.read(configMapKey).decodeValue[Value]
-    }
-
-    override def toString: String =
-      s"ConfigMapInNamespace($namespace)"
-  }
+  private[this] final def configMapConfigKey(
+    namespace: String,
+    name: String,
+    key: Option[String]
+  ): ConfigKey =
+    ConfigKey(key match {
+      case Some(key) => s"kubernetes config map [namespace = $namespace, name = $name, key = $key]"
+      case None      => s"kubernetes config map [namespace = $namespace, name = $name]"
+    })
 }
