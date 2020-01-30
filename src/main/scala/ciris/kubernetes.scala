@@ -6,8 +6,7 @@ import io.kubernetes.client.{ApiClient, ApiException}
 import io.kubernetes.client.apis.CoreV1Api
 import io.kubernetes.client.util.Config
 import java.nio.charset.StandardCharsets
-import scala.collection.JavaConverters._
-
+import scala.jdk.CollectionConverters._
 package object kubernetes {
   final def configMapInNamespace(
     namespace: String,
