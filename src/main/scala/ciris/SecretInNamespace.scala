@@ -2,7 +2,7 @@ package ciris.kubernetes
 
 import cats.effect.Blocker
 import ciris.ConfigValue
-import io.kubernetes.client.ApiClient
+import io.kubernetes.client.openapi.ApiClient
 
 sealed abstract class SecretInNamespace {
   def apply(name: String): ConfigValue[String]
