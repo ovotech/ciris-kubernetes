@@ -2,8 +2,8 @@ package ciris
 
 import cats.effect.{Blocker, Sync}
 import cats.implicits._
-import io.kubernetes.client.{ApiClient, ApiException}
-import io.kubernetes.client.apis.CoreV1Api
+import io.kubernetes.client.openapi.{ApiClient, ApiException}
+import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.util.Config
 import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
