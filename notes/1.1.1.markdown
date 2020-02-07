@@ -1,0 +1,11 @@
+### Updates
+
+- Update ciris to 1.0.4 ([#17][#17])
+- Update sbt to 1.3.7 ([#18][#18])
+- Update Kubernetes Client to v7.0.0 ([#19][#19])
+- Update sbt to 1.3.8 ([#20][#20])
+
+[#17]: https://github.com/ovotech/ciris-kubernetes/pull/17
+[#18]: https://github.com/ovotech/ciris-kubernetes/pull/18
+[#19]: https://github.com/ovotech/ciris-kubernetes/pull/19
+[#20]: https://github.com/ovotech/ciris-kubernetes/pull/20
