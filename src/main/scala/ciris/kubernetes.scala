@@ -1,6 +1,6 @@
 package ciris
 
-import cats.effect.{Blocker, Sync}
+import cats.effect.Blocker
 import cats.implicits._
 import io.kubernetes.client.openapi.{ApiClient, ApiException}
 import io.kubernetes.client.openapi.apis.CoreV1Api
@@ -73,29 +73,23 @@ package object kubernetes {
     configKey: ConfigKey,
     entries: Map[String, A]
   ): ConfigValue[A] = {
-    def availableKeys = s"available keys are: ${entries.keys.toList.sorted.mkString(", ")}"
 
     key match {
       case Some(key) =>
         entries.get(key) match {
-          case Some(value) =>
-            ConfigValue.loaded(configKey, value)
-
-          case None =>
-            ConfigValue.failed {
-              ConfigError {
-                s"${configKey.description.capitalize} exists but there is no entry with key [$key]; $availableKeys"
-              }
-            }
+          case Some(value) => ConfigValue.loaded(configKey, value)
+          case None        => ConfigValue.missing(configKey)
         }
 
-      case None if entries.size == 1 =>
-        ConfigValue.loaded(configKey, entries.values.head)
+      case None if entries.size == 0 => ConfigValue.missing(configKey)
+
+      case None if entries.size == 1 => ConfigValue.loaded(configKey, entries.values.head)
 
       case None =>
         ConfigValue.failed {
           ConfigError {
-            s"There is more than one entry available for ${configKey.description}, please specify which key to use; $availableKeys"
+            s"There is more than one entry available for ${configKey.description}, please specify " +
+              s"which key to use; available keys are: ${entries.keys.toList.sorted.mkString(", ")}"
           }
         }
     }
