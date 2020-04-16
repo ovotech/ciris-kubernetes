@@ -1,0 +1,6 @@
+### Changes
+- Add support for default and optional ConfigMap values. Thanks [@gordon-rennie](https://github.com/gordon-rennie)! ([#22][#22])
+
+[#22]: https://github.com/ovotech/ciris-kubernetes/pull/22
+
+Released on 2020-04-16.
