@@ -7,6 +7,6 @@ crossScalaVersions := Seq(scalaVersion.value, "2.12.10")
 releaseCrossBuild := true
 
 libraryDependencies ++= Seq(
-  "is.cir" %% "ciris" % "1.0.4",
+  "is.cir" %% "ciris" % "1.1.0",
   "io.kubernetes" % "client-java" % "7.0.0"
 )
