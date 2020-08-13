@@ -8,5 +8,5 @@ releaseCrossBuild := true
 
 libraryDependencies ++= Seq(
   "is.cir" %% "ciris" % "1.0.4",
-  "io.kubernetes" % "client-java" % "7.0.0"
+  "io.kubernetes" % "client-java" % "9.0.1"
 )
