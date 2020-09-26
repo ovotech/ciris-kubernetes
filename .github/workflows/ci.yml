@@ -1,13 +1,15 @@
 name: Run CI on PRs
-  on:
-    push:
-      branches-ignore:
-        - master
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      steps:
-      - uses: actions/checkout@v1
+
+on:
+  push:
+    branches-ignore:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
 +     - uses: olafurpg/setup-scala@v5
-      - name: Compile
-        run: sbt +compile
+    - name: Compile
+      run: sbt +compile
