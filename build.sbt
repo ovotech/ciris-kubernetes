@@ -8,10 +8,10 @@ releaseCrossBuild := true
 
 libraryDependencies ++= Seq(
   "is.cir" %% "ciris" % "1.2.1",
-  "io.kubernetes" % "client-java" % "11.0.0"
+  "io.kubernetes" % "client-java" % "11.0.0",
+  "org.scalameta" %% "munit" % "0.7.20" % Test,
+  "org.typelevel" %% "cats-core" % "2.4.2" % Test,
+  "org.typelevel" %% "cats-effect" % "2.3.3" % Test
 )
 
-dependencyOverrides ++= Seq(
-  "org.bouncycastle" % "bcprov-ext-jdk15on" % "1.68",
-  "org.bouncycastle" % "bcpkix-jdk15on" % "1.68"
-)
+testFrameworks += new TestFramework("munit.Framework")
