@@ -9,7 +9,7 @@ To get started with [sbt](https://www.scala-sbt.org), simply add the following l
 ```scala
 resolvers += Resolver.bintrayRepo("ovotech", "maven")
 
-libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "1.2.0"
+libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "1.2.2"
 ```
 
 The library is published for Scala 2.12 and 2.13.
@@ -108,4 +108,13 @@ object Main extends IOApp {
       config.load[IO].as(ExitCode.Success)
     }
 }
+```
+
+
+### Development
+
+#### Publishing
+In order to publish a new release, Bintray credentials must be provided. We publish using the rac team account, which results in the artifact being released to the [public repo](https://bintray.com/ovotech/maven/ciris-kubernetes).
+```
+sbt -Dbintray.user=yourBintrayUser -Dbintray.pass=yourBintrayPass release
 ```
