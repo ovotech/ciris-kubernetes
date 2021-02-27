@@ -3,7 +3,7 @@ bintrayOrganization := Some("ovotech")
 licenses += ("MIT", url("https://opensource.org/licenses/MIT"))
 
 scalaVersion := "2.13.4"
-crossScalaVersions := Seq(scalaVersion.value, "2.12.12")
+crossScalaVersions := Seq(scalaVersion.value, "2.12.13")
 releaseCrossBuild := true
 
 libraryDependencies ++= Seq(
