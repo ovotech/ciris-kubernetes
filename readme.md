@@ -7,9 +7,9 @@ Kubernetes support for [Ciris](https://cir.is) using the official [Kubernetes Ja
 To get started with [sbt](https://www.scala-sbt.org), simply add the following lines to your `build.sbt` file.
 
 ```scala
-resolvers += Resolver.bintrayRepo("ovotech", "maven")
+resolvers += "Artifactory" at "https://kaluza.jfrog.io/artifactory/maven/"
 
-libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "1.2.3"
+libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "1.2.4"
 ```
 
 The library is published for Scala 2.12 and 2.13.
