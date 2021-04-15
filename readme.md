@@ -114,7 +114,16 @@ object Main extends IOApp {
 ### Development
 
 #### Publishing
-In order to publish a new release, Bintray credentials must be provided. We publish using the rac team account, which results in the artifact being released to the [public repo](https://bintray.com/ovotech/maven/ciris-kubernetes).
+In order to publish a new release, Artifactory credentials must be provided. We publish using the rac team account, which results in the artifact being released to the [public repo](https://kaluza.jfrog.io/artifactory/maven/com/ovoenergy/ciris-kubernetes_2.13).
+
+Credentials can be set, for example in ~/.sbt/1.0/credentials.sbt:
 ```
-sbt -Dbintray.user=yourBintrayUser -Dbintray.pass=yourBintrayPass release
+credentials += Credentials("Artifactory Realm", "kaluza.jfrog.io", "<username>", "<key>")
+```
+replacing <username> with JFrog username and <key> with your API key.
+
+
+And to release run:
+```
+sbt release
 ```
