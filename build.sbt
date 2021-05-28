@@ -15,7 +15,7 @@ lazy val metadataSettings = Seq(
 
 lazy val scalaSettings = Seq(
   scalaVersion := "2.13.5",
-  crossScalaVersions := Seq(scalaVersion.value, "2.12.13")
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.14")
 )
 
 libraryDependencies ++= Seq(
