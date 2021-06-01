@@ -15,12 +15,41 @@ lazy val metadataSettings = Seq(
 
 lazy val scalaSettings = Seq(
   scalaVersion := "2.13.5",
-  crossScalaVersions := Seq(scalaVersion.value, "2.12.13")
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.13"),
+  scalacOptions ++= {
+    val commonScalacOptions =
+      Seq(
+        "-deprecation",
+        "-encoding",
+        "UTF-8",
+        "-feature",
+        "-unchecked",
+        // "-Xfatal-warnings",
+        "-language:higherKinds",
+        "-Xlint",
+        "-Ywarn-dead-code",
+        "-Ywarn-numeric-widen",
+        "-Ywarn-value-discard",
+        "-Ywarn-unused",
+        "Wunused:nowarn",
+        "-Xlint:unused"
+      )
+
+    val scala212ScalacOptions =
+      if (scalaVersion.value.startsWith("2.12")) {
+        Seq("-Yno-adapted-args", "-Ypartial-unification")
+      } else Seq()
+
+    commonScalacOptions ++
+      scala212ScalacOptions
+  },
+  Compile / console / scalacOptions --= Seq("-Xlint", "-Ywarn-unused")
 )
 
 libraryDependencies ++= Seq(
-  "is.cir" %% "ciris" % "2.0.1",
-  "io.kubernetes" % "client-java" % "12.0.0"
+  "io.kubernetes" % "client-java" % "12.0.1",
+  "io.kubernetes" % "client-java-api" % "12.0.1",
+  "is.cir" %% "ciris" % "2.0.0-RC3"
 )
 
 licenses += ("MIT", url("https://opensource.org/licenses/MIT"))
