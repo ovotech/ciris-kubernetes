@@ -9,7 +9,7 @@ To get started with [sbt](https://www.scala-sbt.org), simply add the following l
 ```scala
 resolvers += "Artifactory" at "https://kaluza.jfrog.io/artifactory/maven/"
 
-libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "1.2.4"
+libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "2.0.0"
 ```
 
 The library is published for Scala 2.12 and 2.13.
@@ -23,7 +23,7 @@ The library supports Kubernetes secrets and config maps.
 Start with `import ciris.kubernetes._` and then set the namespace for your secrets with `secretInNamespace`. You can then load secrets by specifying the secret name. If there is more than one entry for the secret, you can also specify the key to retrieve.
 
 ```scala
-import cats.effect.{Blocker, ExitCode, IO, IOApp}
+import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
 import ciris.kubernetes._
 import ciris.Secret
@@ -37,25 +37,24 @@ final case class Config(
 
 object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
-    Blocker[IO].use { blocker =>
-      val config =
-        secretInNamespace("secrets", blocker).flatMap { secret =>
-          (
-            secret("apiKey").secret, // Key can be omitted if secret has only one entry
-            secret("username"),
-            secret("defaults", "timeoutt").as[Int] // Key is necessary if secret has multiple entries
-          ).parMapN { (apiKey, username, timeout) =>
-            Config(
-              appName = "my-api",
-              apiKey = apiKey,
-              username = username,
-              timeout = timeout
-            )
-          }
-        }
 
-      config.load[IO].as(ExitCode.Success)
-    }
+    val config =
+      secretInNamespace[IO]("secrets").flatMap { secret =>
+        (
+          secret("apiKey").secret, // Key can be omitted if secret has only one entry
+          secret("username"),
+          secret("defaults", "timeoutt").as[Int] // Key is necessary if secret has multiple entries
+        ).parMapN { (apiKey, username, timeout) =>
+          Config(
+            appName = "my-api",
+            apiKey = apiKey,
+            username = username,
+            timeout = timeout
+          )
+        }
+      }
+
+    config.load[IO].as(ExitCode.Success)
 }
 ```
 
@@ -74,7 +73,7 @@ In the example above, the `apiKey` secret is missing, the `username` secret has 
 Config maps are supported in a similar fashion to how secrets are supported.
 
 ```scala
-import cats.effect.{Blocker, ExitCode, IO, IOApp}
+import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
 import ciris.kubernetes._
 import ciris.Secret
@@ -88,25 +87,24 @@ final case class Config(
 
 object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
-    Blocker[IO].use { blocker =>
-      val config =
-        configMapInNamespace("pizza", blocker).flatMap { configMap =>
-          (
-            configMap("pizzaBrand"), // Key can be omitted if config map has only one entry
-            configMap("delivery", "radius").as[Int], // Key is necessary if config map has multiple entries
-            configMap("delivery", "charge").as[Boolean]
-          ).parMapN { (pizzaBrand, deliveryRadius, isDeliveryCharge) =>
-            Config(
-              appName = "my-pizza-api",
-              pizzaBrand = pizzaBrand,
-              deliveryRadius = deliveryRadius,
-              isDeliveryCharge = isDeliveryCharge
-            )
-          }
+    val config =
+      configMapInNamespace[IO]("pizza").flatMap { configMap =>
+        (
+          configMap("pizzaBrand"), // Key can be omitted if config map has only one entry
+          configMap("delivery", "radius").as[Int], // Key is necessary if config map has multiple entries
+          configMap("delivery", "charge").as[Boolean]
+        ).parMapN { (pizzaBrand, deliveryRadius, isDeliveryCharge) =>
+          Config(
+            appName = "my-pizza-api",
+            pizzaBrand = pizzaBrand,
+            deliveryRadius = deliveryRadius,
+            isDeliveryCharge = isDeliveryCharge
+          )
         }
+      }
 
-      config.load[IO].as(ExitCode.Success)
-    }
+    config.load[IO].as(ExitCode.Success)
+
 }
 ```
 
