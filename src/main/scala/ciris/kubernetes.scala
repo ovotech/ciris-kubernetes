@@ -1,78 +1,72 @@
 package ciris
 
-import cats.effect.Blocker
-import cats.implicits._
-import io.kubernetes.client.openapi.{ApiClient, ApiException}
+import io.kubernetes.client.openapi.ApiClient
+import io.kubernetes.client.openapi.ApiException
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.util.Config
+
 import java.nio.charset.StandardCharsets
 import scala.collection.JavaConverters._
 
 package object kubernetes {
-  final def configMapInNamespace(
-    namespace: String,
-    blocker: Blocker
-  ): ConfigValue[ConfigMapInNamespace] =
-    defaultApiClient(blocker).map(configMapInNamespace(namespace, blocker, _))
+  final def configMapInNamespace[F[_]](
+    namespace: String
+  ): ConfigValue[F, ConfigMapInNamespace[F]] =
+    defaultApiClient.map(configMapInNamespace(namespace, _))
 
-  final def configMapInNamespace(
+  final def configMapInNamespace[F[_]](
     namespace: String,
-    blocker: Blocker,
     client: ApiClient
-  ): ConfigMapInNamespace =
-    ConfigMapInNamespace(namespace, client, blocker)
+  ): ConfigMapInNamespace[F] =
+    ConfigMapInNamespace(namespace, client)
 
-  final def defaultApiClient(blocker: Blocker): ConfigValue[ApiClient] =
-    ConfigValue.blockOn(blocker) {
+  final def defaultApiClient[F[_]]: ConfigValue[F, ApiClient] =
+    ConfigValue.blocking {
       ConfigValue.suspend {
         val client = Config.defaultClient()
         ConfigValue.default(client)
       }
     }
 
-  final def secretInNamespace(
-    namespace: String,
-    blocker: Blocker
-  ): ConfigValue[SecretInNamespace] =
-    defaultApiClient(blocker).map(secretInNamespace(namespace, blocker, _))
+  final def secretInNamespace[F[_]](
+    namespace: String
+  ): ConfigValue[F, SecretInNamespace[F]] =
+    defaultApiClient.map(secretInNamespace(namespace, _))
 
-  final def secretInNamespace(
+  final def secretInNamespace[F[_]](
     namespace: String,
-    blocker: Blocker,
     client: ApiClient
-  ): SecretInNamespace =
-    SecretInNamespace(namespace, client, blocker)
+  ): SecretInNamespace[F] =
+    SecretInNamespace(namespace, client)
 
-  private[kubernetes] final def secret(
+  private[kubernetes] final def secret[F[_]](
     client: ApiClient,
     name: String,
     namespace: String,
-    key: Option[String],
-    blocker: Blocker
-  ): ConfigValue[String] = {
+    key: Option[String]
+  ): ConfigValue[F, String] = {
     val configKey = secretConfigKey(namespace, name, key)
-    secretEntries(client, configKey, name, namespace, blocker)
+    secretEntries(client, configKey, name, namespace)
       .flatMap(selectConfigEntry(key, configKey, _))
       .map(new String(_, StandardCharsets.UTF_8))
   }
 
-  private[kubernetes] final def configMap(
+  private[kubernetes] final def configMap[F[_]](
     client: ApiClient,
     name: String,
     namespace: String,
-    key: Option[String],
-    blocker: Blocker
-  ): ConfigValue[String] = {
+    key: Option[String]
+  ): ConfigValue[F, String] = {
     val configKey = configMapConfigKey(namespace, name, key)
-    configMapEntries(client, configKey, name, namespace, blocker)
+    configMapEntries(client, configKey, name, namespace)
       .flatMap(selectConfigEntry(key, configKey, _))
   }
 
-  private[this] final def selectConfigEntry[A](
+  private[this] final def selectConfigEntry[F[_], A](
     key: Option[String],
     configKey: ConfigKey,
     entries: Map[String, A]
-  ): ConfigValue[A] = {
+  ): ConfigValue[F, A] = {
 
     key match {
       case Some(key) =>
@@ -95,14 +89,13 @@ package object kubernetes {
     }
   }
 
-  private[this] final def secretEntries(
+  private[this] final def secretEntries[F[_]](
     client: ApiClient,
     configKey: ConfigKey,
     name: String,
-    namespace: String,
-    blocker: Blocker
-  ): ConfigValue[Map[String, Array[Byte]]] =
-    ConfigValue.blockOn(blocker) {
+    namespace: String
+  ): ConfigValue[F, Map[String, Array[Byte]]] =
+    ConfigValue.blocking {
       ConfigValue.suspend {
         try {
           val entries =
@@ -120,14 +113,13 @@ package object kubernetes {
       }
     }
 
-  private[this] final def configMapEntries(
+  private[this] final def configMapEntries[F[_]](
     client: ApiClient,
     configKey: ConfigKey,
     name: String,
-    namespace: String,
-    blocker: Blocker
-  ): ConfigValue[Map[String, String]] =
-    ConfigValue.blockOn(blocker) {
+    namespace: String
+  ): ConfigValue[F, Map[String, String]] =
+    ConfigValue.blocking {
       ConfigValue.suspend {
         try {
           val entries =
