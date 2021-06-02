@@ -31,7 +31,6 @@ lazy val scalaSettings = Seq(
         "-Ywarn-numeric-widen",
         "-Ywarn-value-discard",
         "-Ywarn-unused",
-        "Wunused:nowarn",
         "-Xlint:unused"
       )
 
