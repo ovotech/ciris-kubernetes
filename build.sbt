@@ -14,13 +14,13 @@ lazy val metadataSettings = Seq(
 )
 
 lazy val scalaSettings = Seq(
-  scalaVersion := "2.13.5",
-  crossScalaVersions := Seq(scalaVersion.value, "2.12.13")
+  scalaVersion := "2.13.7",
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.14")
 )
 
 libraryDependencies ++= Seq(
   "is.cir" %% "ciris" % "1.2.1",
-  "io.kubernetes" % "client-java" % "12.0.0"
+  "io.kubernetes" % "client-java" % "13.0.1"
 )
 
 licenses += ("MIT", url("https://opensource.org/licenses/MIT"))
