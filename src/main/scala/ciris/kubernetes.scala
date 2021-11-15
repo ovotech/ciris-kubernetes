@@ -107,7 +107,7 @@ package object kubernetes {
 
           ConfigValue.default(entries)
         } catch {
-          case cause: ApiException if cause.getMessage == "Not Found" =>
+          case cause: ApiException if cause.getMessage == "Not Found" || cause.getCode == 404 =>
             ConfigValue.missing(configKey)
         }
       }
@@ -131,7 +131,7 @@ package object kubernetes {
 
           ConfigValue.default(entries)
         } catch {
-          case cause: ApiException if cause.getMessage == "Not Found" =>
+          case cause: ApiException if cause.getMessage == "Not Found" || cause.getCode == 404 =>
             ConfigValue.missing(configKey)
         }
       }
