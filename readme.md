@@ -90,7 +90,7 @@ object Main extends IOApp {
     val config =
       configMapInNamespace[IO]("pizza").flatMap { configMap =>
         (
-          configMap("pizzaBrand"), // Key can be omitted if config map has only one entry
+          configMap("pizzabrand"), // Key can be omitted if config map has only one entry
           configMap("delivery", "radius").as[Int], // Key is necessary if config map has multiple entries
           configMap("delivery", "charge").as[Boolean]
         ).parMapN { (pizzaBrand, deliveryRadius, isDeliveryCharge) =>
