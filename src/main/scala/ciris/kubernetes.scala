@@ -100,7 +100,7 @@ package object kubernetes {
         try {
           val entries =
             new CoreV1Api(client)
-              .readNamespacedSecret(name, namespace, null, null, null)
+              .readNamespacedSecret(name, namespace, null)
               .getData
               .asScala
               .toMap
@@ -124,7 +124,7 @@ package object kubernetes {
         try {
           val entries =
             new CoreV1Api(client)
-              .readNamespacedConfigMap(name, namespace, null, null, null)
+              .readNamespacedConfigMap(name, namespace, null)
               .getData
               .asScala
               .toMap
