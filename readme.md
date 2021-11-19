@@ -9,7 +9,7 @@ To get started with [sbt](https://www.scala-sbt.org), simply add the following l
 ```scala
 resolvers += "Artifactory" at "https://kaluza.jfrog.io/artifactory/maven/"
 
-libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "2.0.0"
+libraryDependencies += "com.ovoenergy" %% "ciris-kubernetes" % "2.0.1"
 ```
 
 The library is published for Scala 2.12 and 2.13.
