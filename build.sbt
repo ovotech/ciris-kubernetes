@@ -48,7 +48,11 @@ lazy val scalaSettings = Seq(
 libraryDependencies ++= Seq(
   "is.cir" %% "ciris" % "1.2.1",
   "io.kubernetes" % "client-java" % "14.0.0",
-  "io.kubernetes" % "client-java-api" % "14.0.0"
+  "io.kubernetes" % "client-java-api" % "14.0.0",
+  "org.typelevel" %% "cats-core" % "2.6.1",
+  "org.typelevel" %% "cats-effect" % "2.5.4",
+  "org.scalameta" %% "munit" % "0.7.29" % Test,
+  "org.typelevel" %% "munit-cats-effect-2" % "1.0.6" % Test
 )
 
 licenses += ("MIT", url("https://opensource.org/licenses/MIT"))
