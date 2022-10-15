@@ -14,7 +14,7 @@ lazy val metadataSettings = Seq(
 )
 
 lazy val scalaSettings = Seq(
-  scalaVersion := "2.13.8",
+  scalaVersion := "2.13.10",
   crossScalaVersions := Seq(scalaVersion.value, "2.12.15"),
   scalacOptions ++= {
     val commonScalacOptions =
