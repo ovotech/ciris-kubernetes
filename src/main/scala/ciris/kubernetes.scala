@@ -6,7 +6,7 @@ import io.kubernetes.client.openapi.{ApiClient, ApiException}
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.util.Config
 import java.nio.charset.StandardCharsets
-import scala.jdk.CollectionConverters._
+import scala.collection.JavaConverters._ // cannot be upgraded to scala.jdk.CollectionConverters because 2.12 does not support
 
 package object kubernetes {
   final def configMapInNamespace(
