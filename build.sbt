@@ -46,8 +46,8 @@ lazy val scalaSettings = Seq(
 )
 
 libraryDependencies ++= Seq(
-  "io.kubernetes" % "client-java" % "17.0.0",
-  "io.kubernetes" % "client-java-api" % "17.0.0",
+  "io.kubernetes" % "client-java" % "17.0.1",
+  "io.kubernetes" % "client-java-api" % "17.0.1",
   "is.cir" %% "ciris" % "2.4.0"
 )
 
